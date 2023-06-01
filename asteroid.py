@@ -4,15 +4,18 @@ import random
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 
-asteroid50 = pygame.image.load('pictures/asteroid.png')
-
+asteroid = pygame.image.load('pictures/asteroid.png')
 class Asteroid(object):
-    def __init__(self, rank):
-        self.rank = rank
-        if self.rank == 1:
-            self.image = asteroid50
-        self.w = 50 * rank
-        self.h = 50 * rank
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = []
+        img = pygame.image.load("pictures/3.png")
+        self.images.append(img)
+        self.index = 0
+        self.image = self.images[self.index]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.w = 70
+        self.h = 70
         self.ranPoint = random.choice([(random.randrange(0, SCREEN_WIDTH-self.w), random.choice([-1*self.h - 5, SCREEN_HEIGHT + 5])), (random.choice([-1*self.w - 5, SCREEN_WIDTH + 5]), random.randrange(0, SCREEN_HEIGHT - self.h))])
         self.x, self.y = self.ranPoint
         if self.x < SCREEN_WIDTH//2:

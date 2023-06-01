@@ -1,7 +1,11 @@
 import pygame
 import math
 
-playerRocket = pygame.image.load('pictures/player2.png')
+playerRocket = pygame.transform.scale(pygame.image.load('pictures/player.png'),(100,100))
+
+playerRocketdm1 = pygame.transform.scale(pygame.image.load('pictures/playerdm1.png'),(100,100))
+playerRocketdm2 = pygame.transform.scale(pygame.image.load('pictures/playerdm2.png'),(100,100))
+playerRocketdm3 = pygame.transform.scale(pygame.image.load('pictures/playerdm3.png'),(100,100))
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
@@ -21,7 +25,16 @@ class Player(object):
         self.sine = math.sin(math.radians(self.angle + 90))
         self.head = (self.x + self.cosine * self.w//2, self.y - self.sine * self.h//2)
 
-    def draw(self, win):
+    def draw(self, win, attack):
+        if attack == 0:
+            self.img = playerRocket
+        if attack == 1:
+            self.img = playerRocketdm1
+        if attack == 2:
+            self.img = playerRocketdm2
+        if attack == 3:
+            self.img = playerRocketdm3
+        self.rotatedSurf = pygame.transform.rotate(self.img, self.angle)
         win.blit(self.rotatedSurf, self.rotatedRect)
 
     def turnLeft(self):

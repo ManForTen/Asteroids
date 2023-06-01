@@ -1,9 +1,10 @@
 import pygame
 import random
-
+import time
 
 import player
 import asteroid
+import asteriodback
 
 # Инициализация Pygame
 pygame.init()
@@ -17,23 +18,26 @@ pygame.display.set_caption("Астероиды")
 
 win = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-star = pygame.image.load('pictures/bonus.png')
-bg = pygame.image.load('pictures/bg.png')
+star = pygame.image.load('pictures/bonus.png')  # Картинка для бонуса
+bg = pygame.image.load('pictures/bg.png')  # Картинка для заднего фона
 
-shoot = pygame.mixer.Sound('sounds/shoot.wav')
-bangLargeSound = pygame.mixer.Sound('sounds/bangLarge.wav')
-bangSmallSound = pygame.mixer.Sound('sounds/bangSmall.wav')
-shoot.set_volume(.25)
-bangLargeSound.set_volume(.25)
-bangSmallSound.set_volume(.25)
-
-gameover = False
-lives = 3
-score = 0
-rapidFire = False
+game_music = pygame.mixer.Sound('sounds/Rolle.wav')  # Фоновая музыка для иры
+shoot = pygame.mixer.Sound('sounds/shoot.wav')  # Звук выстрела
+bangLargeSound = pygame.mixer.Sound('sounds/explosion-01.mp3')  # Звук взрыва при соприкосновении с игроком
+bangSmallSound = pygame.mixer.Sound('sounds/explosion-02.wav')  # Звук взрыва при соприкосновении выстрела с астероидом
+shoot.set_volume(.25)  # Громкость
+bangLargeSound.set_volume(.25)  # Громкость
+bangSmallSound.set_volume(.25)  # Громкость
+game_music.set_volume(.25)  # Громкость
+gameover = False  # Переменная для проверки завершения игры
+lives = 3  # Жизни
+score = 0  # Очки
+rapidFire = False  # Быстрый выстрел при уничтожении бонуса
 rfStart = -1
 isSoundOn = True
 highScore = 0
+clock = pygame.time.Clock()
+
 
 
 class Bullet(object):
@@ -80,16 +84,32 @@ class Star(object):
     def draw(self, win):
         win.blit(self.img, (self.x, self.y))
 
-
-def redrawGameWindow():
+global attack
+attack = 0
+def redrawGameWindow(x,y):
     win.blit(bg, (0,0))
+    if x != 0 and y != 0:
+        boom1 = pygame.image.load("pictures/2.png")
+        win.blit(boom1, (x, y))
+        boom2 = pygame.image.load("pictures/3.png")
+        win.blit(boom2, (x, y))
+        boom3 = pygame.image.load("pictures/4.png")
+        win.blit(boom3, (x, y))
+        boom4 = pygame.image.load("pictures/5.png")
+        win.blit(boom4, (x, y))
+        boom5 = pygame.image.load("pictures/6.png")
+        win.blit(boom5, (x, y))
+        boom6 = pygame.image.load("pictures/7.png")
+        win.blit(boom6, (x, y))
     font = pygame.font.SysFont('arial',30)
     livesText = font.render('Жизни: ' + str(lives), 1, (255, 255, 255))
-    playAgainText = font.render('Нажмите пробел, чтобы начать сначала', 1, (255,255,255))
+    playAgainText = font.render('Нажмите esc, чтобы начать сначала', 1, (255,255,255))
     scoreText = font.render('Очки: ' + str(score), 1, (255,255,255))
     highScoreText = font.render('Максимальный результат: ' + str(highScore), 1, (255, 255, 255))
 
-    player.draw(win)
+    for d in asteroidsback:
+        d.draw(win)
+    player.draw(win,attack)
     for a in asteroids:
         a.draw(win)
     for b in playerBullets:
@@ -97,9 +117,9 @@ def redrawGameWindow():
     for s in stars:
         s.draw(win)
 
-    if rapidFire:
-        pygame.draw.rect(win, (0, 0, 0), [SCREEN_WIDTH//2 - 51, 19, 102, 22])
-        pygame.draw.rect(win, (255, 255, 255), [SCREEN_WIDTH//2 - 50, 20, 100 - 100*(count - rfStart)/500, 20])
+    if rapidFire:  # Быстрый выстрел при уничтожении бонуса
+        pygame.draw.rect(win, (0, 0, 0), [SCREEN_WIDTH // 2 - 51, 19, 102, 22])
+        pygame.draw.rect(win, (255, 255, 255), [SCREEN_WIDTH // 2 - 50, 20, 100 - 100 * (count - rfStart) / 500, 20])
 
     if gameover:
         win.blit(playAgainText, (SCREEN_WIDTH//2-playAgainText.get_width()//2, SCREEN_HEIGHT//2 - playAgainText.get_height()//2))
@@ -107,6 +127,38 @@ def redrawGameWindow():
     win.blit(livesText, (25, 25))
     win.blit(highScoreText, (SCREEN_WIDTH - highScoreText.get_width() -25, 35 + scoreText.get_height()))
     pygame.display.update()
+
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.images = []
+        for i in range(7):
+            img = pygame.image.load(f"pictures/{i + 1}.png")
+            self.images.append(pygame.transform.scale(img, (100, 100)))
+
+        self.image_index = 0
+        self.image = self.images[self.image_index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (50, 50)
+
+        self.animation_time = 0.05
+        self.current_time = 0
+
+    def update(self, dt):
+        self.current_time += dt
+
+        if self.current_time >= self.animation_time:
+            self.current_time = 0
+            self.image_index += 1
+
+            if self.image_index >= len(self.images):
+                self.kill()
+            else:
+                self.image = self.images[self.image_index]
+                self.rect = self.image.get_rect()
+                self.rect.center = (self.rect.centerx, self.rect.centery)
 
 
 # Colors
@@ -125,7 +177,6 @@ font = "Retro.ttf"
 def text_format(message, textFont, textSize, textColor):
     newFont = pygame.font.Font(textFont, textSize)
     newText = newFont.render(message, 0, textColor)
-
     return newText
 
 # Main Menu
@@ -140,8 +191,10 @@ def main_menu():
                 quit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
+                    shoot.play()
                     selected = "start"
                 elif event.key == pygame.K_DOWN:
+                    shoot.play()
                     selected = "quit"
                 if event.key == pygame.K_RETURN:
                     if selected == "start":
@@ -171,23 +224,28 @@ def main_menu():
         win.blit(text_start, (SCREEN_WIDTH/2 - (start_rect[2]/2), 300))
         win.blit(text_quit, (SCREEN_WIDTH/2 - (quit_rect[2]/2), 360))
         pygame.display.update()
-        pygame.display.set_caption("Python - Pygame Simple Main Menu Selection")
+
 main_menu()
+game_music.play()
 player = player.Player()
 playerBullets = []
 asteroids = []
+asteroidsback = []
 count = 0
 stars = []
 run = True
 while run:
     count += 1
     if not gameover:
+        for b in asteroidsback:
+            b.x += b.xv
+            b.y += b.yv
+        if count % 25 == 0:
+            asteroidsback.append(asteriodback.Asteroiback())
         if count % 50 == 0:
-            ran = 1
-            asteroids.append(asteroid.Asteroid(ran))
+            asteroids.append(asteroid.Asteroid())
         if count % 1000 == 0:
             stars.append(Star())
-
 
         player.updateLocation()
         for b in playerBullets:
@@ -196,50 +254,28 @@ while run:
                 playerBullets.pop(playerBullets.index(b))
 
 
+
         for a in asteroids:
             a.x += a.xv
             a.y += a.yv
 
+            # Столкновение с игроком
             if (a.x >= player.x - player.w//2 and a.x <= player.x + player.w//2) or (a.x + a.w <= player.x + player.w//2 and a.x + a.w >= player.x - player.w//2):
-                if(a.y >= player.y - player.h//2 and a.y <= player.y + player.h//2) or (a.y  +a.h >= player.y - player.h//2 and a.y + a.h <= player.y + player.h//2):
+                if(a.y >= player.y - player.h//2 and a.y <= player.y + player.h//2) or (a.y + a.h >= player.y - player.h//2 and a.y + a.h <= player.y + player.h//2):
+                    redrawGameWindow(a.x, a.y)
                     lives -= 1
+                    attack += 1
+                    bangLargeSound.play()
                     asteroids.pop(asteroids.index(a))
-                    if isSoundOn:
-                        bangLargeSound.play()
                     break
 
             # bullet collision
             for b in playerBullets:
                 if (b.x >= a.x and b.x <= a.x + a.w) or b.x + b.w >= a.x and b.x + b.w <= a.x + a.w:
                     if (b.y >= a.y and b.y <= a.y + a.h) or b.y + b.h >= a.y and b.y + b.h <= a.y + a.h:
-                        if a.rank == 3:
-                            if isSoundOn:
-                                bangLargeSound.play()
-                            score += 10
-                            na1 = asteroid.Asteroid(2)
-                            na2 = asteroid.Asteroid(2)
-                            na1.x = a.x
-                            na2.x = a.x
-                            na1.y = a.y
-                            na2.y = a.y
-                            asteroids.append(na1)
-                            asteroids.append(na2)
-                        elif a.rank == 2:
-                            if isSoundOn:
-                                bangSmallSound.play()
-                            score += 20
-                            na1 = asteroid.Asteroid(1)
-                            na2 = asteroid.Asteroid(1)
-                            na1.x = a.x
-                            na2.x = a.x
-                            na1.y = a.y
-                            na2.y = a.y
-                            asteroids.append(na1)
-                            asteroids.append(na2)
-                        else:
-                            score += 30
-                            if isSoundOn:
-                                bangSmallSound.play()
+                        redrawGameWindow(a.x, a.y)
+                        score += 1
+                        bangSmallSound.play()
                         asteroids.pop(asteroids.index(a))
                         playerBullets.pop(playerBullets.index(b))
                         break
@@ -290,10 +326,8 @@ while run:
                         playerBullets.append(Bullet())
                         if isSoundOn:
                             shoot.play()
-            if event.key == pygame.K_m:
-                isSoundOn = not isSoundOn
 
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_ESCAPE:
                 if gameover:
                     gameover = False
                     lives = 3
@@ -302,7 +336,8 @@ while run:
                     if score > highScore:
                         highScore = score
                     score = 0
+                    attack = 0
 
-    redrawGameWindow()
+    redrawGameWindow(0,0)
 # Закрытие Pygame
 pygame.quit()
